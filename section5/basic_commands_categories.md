@@ -118,6 +118,8 @@ External : created by the user or the developer
 
 16- vim --> read files and edit the files
 
+17 - grep: search for something matches a pattern
+
 
 
 
