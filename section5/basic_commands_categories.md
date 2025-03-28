@@ -120,6 +120,6 @@ External : created by the user or the developer
 
 17 - grep: search for something matches a pattern
 
-
+18- history of the shell or the command and search in the history
 
 
