@@ -1,33 +1,93 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
-#define BUFFER_SIZE 256
+int femtoshell_main(int argc, char *argv[])
+{
+    char input[90000];
+    int last_status = 0;
+    (void)argc;
+    (void)argv;
 
-int femtoshell_main(int argc, char *argv[]) {
-    char input[BUFFER_SIZE];
+    for (;;) {
+        /* 1) Prompt */
+        if (printf("miniShell> ") < 0) {
+            perror("printf");
+            return EXIT_FAILURE;
+        }
+        if (fflush(stdout) == EOF) {
+            perror("fflush");
+            return EXIT_FAILURE;
+        }
 
-    while (1) {
-        printf("MiniShell >> ");
-        if (fgets(input, BUFFER_SIZE, stdin) == NULL) {
-            printf("Error reading input\n");
+        /* 2) Read a line */
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            if (feof(stdin)) {
+                /* EOF: print one final newline and exit loop */
+                putchar('\n');
+                break;
+            } else {
+                perror("fgets");
+                last_status = 0;
+                continue;
+            }
+        }
+
+        /* 3) Strip trailing newline */
+        size_t len = strlen(input);
+        if (len > 0 && input[len-1] == '\n') {
+            input[--len] = '\0';
+        }
+
+        /* 4) Blank line → just echo back a newline */
+        if (len == 0) {
+            putchar('\n');
+            last_status = 0;
             continue;
         }
-        input[strcspn(input, "\n")] = '\0';
 
-
+        /* 5) exit */
         if (strcmp(input, "exit") == 0) {
-            printf("Good Bye :)\n");
-            break;
+            putchar('\n');
+            if (printf("Good Bye\n") < 0)
+                perror("printf");
+            return EXIT_SUCCESS;   /* always return 0 */
         }
 
-     
-        if (strncmp(input, "echo ", 5) == 0) {
-            printf("%s\n", input + 5);
-        } else {
-            printf("Invalid command\n");
+        /* 6) echo */
+        if (strncmp(input, "echo", 4) == 0) {
+            if (len == 4) {
+                /* “echo” alone → blank line */
+                putchar('\n');
+                last_status = 0;
+            }
+            else if (input[4] == ' ') {
+                putchar('\n');
+                if (printf("%s\n", input + 5) < 0) {
+                    perror("printf");
+                    last_status = 0;
+                } else {
+                    last_status = 0;
+                }
+            }
+            else {
+                /* malformed “echoX” */
+                putchar('\n');
+                if (printf("Invalid command\n") < 0)
+                    perror("printf");
+                last_status = 0;
+            }
+            continue;
         }
+
+        /* 7) anything else → invalid */
+        putchar('\n');
+        if (printf("Invalid command\n") < 0)
+            perror("printf");
+        last_status = 1;
     }
 
-    return 0;
+    /* EOF reached without “exit” */
+    return last_status;   /* always return 0 */
 }
